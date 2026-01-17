@@ -1,5 +1,8 @@
-#include "pico/stdlib.h"
 #include "tusb.h"
+#include "pico/stdlib.h"
+#include <string.h>
+#include "pico/multicore.h"
+
 
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type,
@@ -13,11 +16,22 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
     tud_hid_report(0, response, 64);
 }
 
+void core1_entry() {
+    while (1) {
+        tud_task();   // obsługa USB
+        // kod dla rdzenia 1
+    }
+}
+
 int main() {
     stdio_init_all();
     tusb_init();
 
+    multicore_launch_core1(core1_entry);
+
+
     while (1) {
-        tud_task();   // obsługa USB
+        // kod dla rdzenia 0
     }
 }
+

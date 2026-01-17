@@ -17,10 +17,13 @@ target_include_directories(pico_jtag_cable PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
+
 target_link_libraries(pico_jtag_cable
     pico_stdlib
+    pico_multicore
     tinyusb_device
     tinyusb_board
 )
 
 pico_add_extra_outputs(pico_jtag_cable)
+set(PICO_NO_PICOTOOL 1)
