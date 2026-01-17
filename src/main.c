@@ -17,6 +17,8 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
 }
 
 void core1_entry() {
+    stdio_init_all();
+    tusb_init();
     while (1) {
         tud_task();   // obsługa USB
         // kod dla rdzenia 1
@@ -24,13 +26,12 @@ void core1_entry() {
 }
 
 int main() {
-    stdio_init_all();
-    tusb_init();
 
     multicore_launch_core1(core1_entry);
 
 
     while (1) {
+        //tud_task();   // obsługa USB
         // kod dla rdzenia 0
     }
 }
