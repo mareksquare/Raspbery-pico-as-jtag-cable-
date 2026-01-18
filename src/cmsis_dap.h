@@ -7,6 +7,7 @@
 #define PIN_TMS 4
 #define PIN_TDI 3
 #define PIN_TDO 5
+#define DAP_JTAG_nRESET_PIN 6
 #define PIN_LED 25
 
 // --- DEFINICJE CMSIS-DAP ---
@@ -26,6 +27,8 @@
 #define ID_DAP_SWD_Configure     0x13
 #define ID_DAP_JTAG_Sequence     0x14
 #define ID_DAP_HostStatus        0x01
+
+#define DAP_RESET_TARGET 1
 
 #define DAP_OK    0x00
 #define DAP_ERROR 0xFF

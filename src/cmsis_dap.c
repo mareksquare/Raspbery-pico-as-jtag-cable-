@@ -15,31 +15,39 @@ uint8_t tdo_stream_buf[TDO_BUF_SIZE];
 
 volatile uint32_t tdo_wp = 0;   // write pointer
 volatile uint32_t tdo_rp = 0;   // read pointer
-
-
-
-
 static bool connected = false;
+
+
+void PORT_JTAG_SETUP(void) {
+    gpio_init(DAP_JTAG_nRESET_PIN);
+    gpio_set_dir(DAP_JTAG_nRESET_PIN, GPIO_OUT);
+    gpio_put(DAP_JTAG_nRESET_PIN, 1);   // reset nieaktywny
+}
+
+void PORT_JTAG_SET_RESET(uint32_t bit) {
+    if (bit) {
+        gpio_put(DAP_JTAG_nRESET_PIN, 1);   // zwolnij reset
+    } else {
+        gpio_put(DAP_JTAG_nRESET_PIN, 0);   // aktywuj reset
+    }
+}
+
+uint8_t DAP_ResetTarget(void) {
+    PORT_JTAG_SET_RESET(0);
+    sleep_ms(5);
+    PORT_JTAG_SET_RESET(1);
+    return 1; // reset wykonany
+}
 
 // --- FUNKCJE GPIO ---
 void dap_gpio_init() {
     int i;
     static bool initialized = false;
     if (initialized) return;
-    for ( i = 20;i >0 ; i-- ){
-	gpio_init(i);
-	gpio_set_dir(i, GPIO_OUT);
-	gpio_put(i, 0);
-	
-    }
-    sleep_us(1);
-    for ( i = 20;i >0 ; i-- ){
-	gpio_init(i);
-	gpio_set_dir(i, GPIO_OUT);
-	gpio_put(i, 1);
-	
-    }
-    sleep_us(1);
+
+    gpio_init(DAP_JTAG_nRESET_PIN); gpio_set_dir(DAP_JTAG_nRESET_PIN, GPIO_OUT);gpio_put(DAP_JTAG_nRESET_PIN, 0);
+    sleep_ms(1);
+    gpio_init(DAP_JTAG_nRESET_PIN); gpio_set_dir(DAP_JTAG_nRESET_PIN, GPIO_OUT);gpio_put(DAP_JTAG_nRESET_PIN, 1);
 
     gpio_init(PIN_TCK); gpio_set_dir(PIN_TCK, GPIO_OUT); gpio_put(PIN_TCK, 1);
     gpio_init(PIN_TMS); gpio_set_dir(PIN_TMS, GPIO_OUT); gpio_put(PIN_TMS, 1);
@@ -87,6 +95,10 @@ static void handle_dap_info(uint8_t const *req, uint8_t *resp) {
             // KLUCZOWE: OpenOCD wymaga rozmiaru pakietu (64 bajty)
             len = 2; resp[1] = len; resp[2] = 64; resp[3] = 0;
             break;
+	case ID_DAP_ResetTarget:
+	    resp[0] = ID_DAP_ResetTarget;
+	    resp[1] = DAP_ResetTarget();   // <<< wywołuje Twój reset na GP7
+	    break;
         default:
             resp[1] = 0; break;
     }
@@ -186,6 +198,7 @@ static void handle_dap_jtag_sequence(uint8_t const *req, uint8_t *resp)
                 sleep_us(JTAG_DELAY_US);
 
 		bit_tdo = gpio_get(PIN_TDO);//pobieramy tdo
+                sleep_us(JTAG_DELAY_US);
 		// --- RING BUFFER PRODUCER: zapis TDO bez utraty bitów ---
 		uint32_t next_wp = (tdo_wp + 4) % TDO_BUF_SIZE;
 
@@ -217,7 +230,6 @@ static void handle_dap_jtag_sequence(uint8_t const *req, uint8_t *resp)
 		    // BUFOR PEŁNY – NIE NADPISUJEMY!
 		    // Możesz tu ustawić flagę overflow, jeśli chcesz
 		}
-                sleep_us(JTAG_DELAY_US);
 
                 if (capture_tdo)
                 {
